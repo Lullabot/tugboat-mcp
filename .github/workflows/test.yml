@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tugboat-mcp/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'tugboat-mcp/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tugboat-mcp
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: 'tugboat-mcp/package-lock.json'
+    
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build
+      run: npm run build
+    
+    - name: Run tests
+      run: npm test
+      
+    - name: Run tests with coverage
+      run: npm run test:coverage
+      
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        directory: tugboat-mcp/coverage
+        flags: unittests
+        name: tugboat-mcp
+        fail_ci_if_error: false
+        verbose: true 

@@ -1,0 +1,32 @@
+# Source files
+src/
+tests/
+
+# Config files
+.github/
+.vscode/
+jest.config.js
+tsconfig.json
+.eslintrc.js
+.prettierrc
+
+# Test files
+coverage/
+*.test.ts
+*.spec.ts
+
+# Development scripts
+run-tests.sh
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor directories and files
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+node_modules/ 
