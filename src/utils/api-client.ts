@@ -258,4 +258,221 @@ export class TugboatApiClient {
       throw new Error(`Tugboat API Error: ${error.message}`);
     }
   }
+
+  /**
+   * Get repository details
+   * 
+   * @param repositoryId The ID of the repository
+   * @returns Repository details
+   */
+  async getRepository(repositoryId: string) {
+    return this.get(`/repositories/${repositoryId}`);
+  }
+
+  /**
+   * Create a new repository
+   * 
+   * @param projectId The ID of the project to create the repository in
+   * @param name The name of the repository
+   * @param provider The git provider (github, gitlab, etc)
+   * @param url The repository URL
+   * @param isPrivate Whether the repository is private
+   * @param buildSettings Optional build settings
+   * @returns The created repository
+   */
+  async createRepository(
+    projectId: string,
+    name: string,
+    provider: string,
+    url: string,
+    isPrivate?: boolean,
+    buildSettings?: any
+  ) {
+    const data: any = {
+      name,
+      provider,
+      url
+    };
+    
+    if (isPrivate !== undefined) {
+      data.private = isPrivate;
+    }
+    
+    if (buildSettings) {
+      data.buildSettings = buildSettings;
+    }
+    
+    return this.post(`/projects/${projectId}/repositories`, data);
+  }
+
+  /**
+   * Update repository details
+   * 
+   * @param repositoryId The ID of the repository
+   * @param data The repository data to update
+   * @returns The updated repository
+   */
+  async updateRepository(repositoryId: string, data: any) {
+    return this.patch(`/repositories/${repositoryId}`, data);
+  }
+
+  /**
+   * Delete a repository
+   * 
+   * @param repositoryId The ID of the repository
+   * @returns Success status
+   */
+  async deleteRepository(repositoryId: string) {
+    return this.delete(`/repositories/${repositoryId}`);
+  }
+
+  /**
+   * Get repository previews
+   * 
+   * @param repositoryId The ID of the repository
+   * @returns List of repository previews
+   */
+  async getRepositoryPreviews(repositoryId: string) {
+    return this.get(`/repositories/${repositoryId}/previews`);
+  }
+
+  /**
+   * Get repository branches
+   * 
+   * @param repositoryId The ID of the repository
+   * @returns List of repository branches
+   */
+  async getRepositoryBranches(repositoryId: string) {
+    return this.get(`/repositories/${repositoryId}/branches`);
+  }
+
+  /**
+   * Get repository pull requests
+   * 
+   * @param repositoryId The ID of the repository
+   * @returns List of repository pull requests
+   */
+  async getRepositoryPullRequests(repositoryId: string) {
+    return this.get(`/repositories/${repositoryId}/pull-requests`);
+  }
+
+  /**
+   * Search for previews
+   * 
+   * @param params The search parameters (query, state)
+   * @returns A promise resolving to the search results
+   */
+  public async searchPreviews(params: { query: string, state?: string, limit?: number, offset?: number }): Promise<any> {
+    if (this.debugMode) {
+      console.log(`[Tugboat API] Searching previews with params: ${JSON.stringify(params)}`);
+    }
+    
+    try {
+      const response = await this.client.get('/previews', { params });
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for projects
+   * 
+   * @param params The search parameters (query, limit, offset)
+   * @returns A promise resolving to the search results
+   */
+  public async searchProjects(params: { query: string, limit?: number, offset?: number }): Promise<any> {
+    if (this.debugMode) {
+      console.log(`[Tugboat API] Searching projects with params: ${JSON.stringify(params)}`);
+    }
+    
+    try {
+      const response = await this.client.get('/projects', { params });
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for repositories
+   * 
+   * @param params The search parameters (query, projectId, limit, offset)
+   * @returns A promise resolving to the search results
+   */
+  public async searchRepositories(params: { query: string, projectId?: string, limit?: number, offset?: number }): Promise<any> {
+    if (this.debugMode) {
+      console.log(`[Tugboat API] Searching repositories with params: ${JSON.stringify(params)}`);
+    }
+    
+    try {
+      const response = await this.client.get('/repositories', { params });
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new preview
+   * 
+   * @param repo Repository ID
+   * @param ref Git reference (branch, tag, or commit)
+   * @param name Optional preview name
+   * @param config Optional preview configuration
+   * @returns The created preview data
+   */
+  async createPreview(repo: string, ref: string, name?: string, config?: any): Promise<any> {
+    const data = {
+      ref,
+      name,
+      config
+    };
+    return this.post(`/previews/${repo}`, data);
+  }
+
+  /**
+   * Build a preview
+   * 
+   * @param previewId ID of the preview to build
+   * @returns The build result
+   */
+  async buildPreview(previewId: string): Promise<any> {
+    return this.post(`/previews/${previewId}/build`);
+  }
+
+  /**
+   * Refresh a preview
+   * 
+   * @param previewId ID of the preview to refresh
+   * @returns The refresh result
+   */
+  async refreshPreview(previewId: string): Promise<any> {
+    return this.post(`/previews/${previewId}/refresh`);
+  }
+
+  /**
+   * Delete a preview
+   * 
+   * @param previewId ID of the preview to delete
+   * @returns The deletion result
+   */
+  async deletePreview(previewId: string): Promise<any> {
+    return this.post(`/previews/${previewId}/delete`);
+  }
+
+  /**
+   * Get logs for a preview
+   * 
+   * @param previewId ID of the preview
+   * @param lines Optional number of lines to return
+   * @returns The preview logs
+   */
+  async getPreviewLogs(previewId: string, lines?: number): Promise<any> {
+    const params = lines ? { lines } : undefined;
+    return this.get(`/previews/${previewId}/logs`, { params });
+  }
 } 
