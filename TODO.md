@@ -155,20 +155,66 @@ See GitHub Issue [#2](https://github.com/Lullabot/tugboat-mcp/issues/2) for impl
 - [ ] Cancel running jobs
 - [ ] View job logs
 
-### Webhook Management
+See GitHub Issue [#4](https://github.com/Lullabot/tugboat-mcp/issues/4) for implementation details.
 
-- [ ] List webhooks
-- [ ] Create webhook
-- [ ] Update webhook
-- [ ] Delete webhook
-- [ ] View webhook history
+### Visual Diffs Management
+
+- [ ] Generate visual diffs
+- [ ] Retrieve visual diff results
+- [ ] Configure visual diff settings
+- [ ] Visual diff analysis
+
+See GitHub Issue [#5](https://github.com/Lullabot/tugboat-mcp/issues/5) for implementation details.
+
+### Lighthouse Reports Management
+
+- [ ] Generate Lighthouse reports
+- [ ] Retrieve report results
+- [ ] Configure report settings
+- [ ] Report analysis (Performance, Accessibility, Best Practices, PWA, SEO)
+
+See GitHub Issue [#6](https://github.com/Lullabot/tugboat-mcp/issues/6) for implementation details.
+
+### Screenshots Management
+
+- [ ] Generate screenshots
+- [ ] Retrieve screenshots
+- [ ] Configure screenshot settings
+- [ ] Screenshot management (list, delete, compare)
+
+See GitHub Issue [#7](https://github.com/Lullabot/tugboat-mcp/issues/7) for implementation details.
+
+### Mail Management
+
+- [ ] Configure mail settings
+- [ ] Manage mail configurations
+- [ ] Test mail delivery and routing
+
+See GitHub Issue [#8](https://github.com/Lullabot/tugboat-mcp/issues/8) for implementation details.
+
+### Docker Registry Management
+
+- [ ] Configure Docker registries
+- [ ] Manage registry settings
+- [ ] Handle registry integration
+
+See GitHub Issue [#9](https://github.com/Lullabot/tugboat-mcp/issues/9) for implementation details.
 
 ### Analytics and Reporting
 
-- [ ] Get usage statistics
-- [ ] Get build metrics
-- [ ] Get preview metrics
-- [ ] Generate reports
+- [ ] Project usage statistics
+  - [ ] Resource consumption
+  - [ ] Build times
+  - [ ] Preview counts
+- [ ] Repository metrics
+  - [ ] Build success rates
+  - [ ] Average build duration
+  - [ ] Preview activity
+- [ ] Service performance metrics
+  - [ ] Uptime tracking
+  - [ ] Resource utilization
+  - [ ] Response times
+- [ ] Generate consolidated reports
 
 ## Future Enhancements
 
