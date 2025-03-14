@@ -146,13 +146,7 @@
 - [ ] Execute commands in service containers
 - [ ] Access service logs
 
-### User Management
-
-- [ ] List users
-- [ ] Get user details
-- [ ] Invite users
-- [ ] Update user permissions
-- [ ] Remove users
+See GitHub Issue [#2](https://github.com/Lullabot/tugboat-mcp/issues/2) for implementation details.
 
 ### Job Management
 
