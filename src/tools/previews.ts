@@ -1,9 +1,8 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-import { TugboatApiClient } from "../utils/api-client";
-import { AuthManager } from "../utils/auth";
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { TugboatApiClient } from '../utils/api-client';
+import { AuthManager } from '../utils/auth';
+import { z } from 'zod';
 
-// Logger interface
 interface Logger {
   log: (message: string) => void;
   error: (message: string) => void;
@@ -27,87 +26,82 @@ function formatSize(bytes: number): string {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 }
 
+interface PreviewData {
+  id: string;
+  name: string;
+  repository: string;
+  ref: string;
+  status: string;
+  // Add other fields as needed
+}
+
+interface ApiError extends Error {
+  message: string;
+}
+
 /**
  * Register preview-related tools
  */
-export function registerPreviewTools(server: McpServer, apiClient: TugboatApiClient, authManager: AuthManager, logger: Logger) {
-  // Create preview tool
+export function registerPreviewTools(
+  server: McpServer,
+  apiClient: TugboatApiClient,
+  authManager: AuthManager,
+  logger: Logger
+) {
   server.tool(
-    "createPreview",
+    'createPreview',
     {
-      // Defining 'repo' instead of 'repoId' to match the API documentation terminology
-      repo: z.string()
-        .min(24, "Repository ID must be at least 24 characters")
-        .max(24, "Repository ID must be at most 24 characters")
-        .describe("Repository ID (24 characters) to create the preview in"),
-      
-      // The required git reference parameter
-      ref: z.string()
-        .min(1, "Git reference cannot be empty")
-        .describe("Git reference to use for the preview (pull request number, branch, tag, or commit hash)"),
-      
-      // Optional name parameter with defaults
-      name: z.string()
-        .optional()
-        .describe("Name for the preview (optional, defaults to the reference name)"),
-      
-      // Optional configuration parameter
-      config: z.record(z.any())
-        .optional()
-        .describe("Optional preview configuration")
+      repo: z.string().describe('Repository ID to create the preview in'),
+      ref: z.string().describe('Git reference to use for the preview'),
+      name: z.string().optional().describe('Name for the preview (optional)'),
+      config: z.record(z.any()).optional().describe('Optional preview configuration')
     },
-    async ({ repo, ref, name, config }) => {
+    async (args, extra) => {
       try {
-        // Check authorization
-        const isAuthorized = await authManager.isAuthorized(`repository/${repo}`, 'write');
+        const { repo, ref, name, config } = args;
+        const isAuthorized = await authManager.isAuthorized('previews', 'write');
         if (!isAuthorized) {
           return {
-            content: [
-              {
-                type: "text",
-                text: `Error: You do not have permission to create previews in repository ${repo}`
-              }
-            ]
+            content: [{
+              type: 'text' as const,
+              text: 'You are not authorized to create previews. Please authenticate first.'
+            }]
           };
         }
 
-        // Create the preview
         const result = await apiClient.createPreview(repo, ref, name, config);
-        
-        if (!result || !result.preview) {
+        const previewId = result.preview.id;
+
+        try {
+          const previewData = await apiClient.getPreview(previewId);
           return {
             content: [
               {
-                type: "text",
-                text: "Error creating preview. Please check your inputs and try again."
+                type: 'text' as const,
+                text: `Successfully created preview ${previewData.name} (${previewData.id})`
+              }
+            ]
+          };
+        } catch (error) {
+          const apiError = error as ApiError;
+          logger.error(`Error creating preview: ${apiError.message}`);
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error creating preview: ${apiError.message}`
               }
             ]
           };
         }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Preview created successfully: ${result.preview.name} (ID: ${result.preview.id})`
-            },
-            {
-              type: "text",
-              text: `Status: ${result.preview.status || 'Unknown'}`
-            },
-            {
-              type: "text",
-              text: `URL: ${result.preview.url || 'Not available yet'}`
-            }
-          ]
-        };
       } catch (error) {
-        logger.error(`Error creating preview: ${error.message}`);
+        const apiError = error as ApiError;
+        logger.error(`Error creating preview: ${apiError.message}`);
         return {
           content: [
             {
-              type: "text",
-              text: `Error creating preview: ${error.message}`
+              type: 'text' as const,
+              text: `Error creating preview: ${apiError.message}`
             }
           ]
         };
@@ -115,381 +109,245 @@ export function registerPreviewTools(server: McpServer, apiClient: TugboatApiCli
     }
   );
 
-  // Build preview tool
   server.tool(
-    "buildPreview",
+    'buildPreview',
     {
-      id: z.string()
-        .min(24, "Preview ID must be at least 24 characters")
-        .max(24, "Preview ID must be at most 24 characters")
-        .describe("Preview ID (24 characters) to build")
+      previewId: z.string().describe('ID of the preview to build')
     },
-    async ({ id }) => {
+    async (args, extra) => {
       try {
-        // Get the preview first to check authorization
-        const previewData = await apiClient.getPreview(id);
-        if (!previewData || !previewData.preview) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Preview ${id} not found`
-              }
-            ]
-          };
-        }
-
-        // Check authorization
-        const repo = previewData.preview.repository?.id;
-        if (!repo) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Could not determine repository for preview ${id}`
-              }
-            ]
-          };
-        }
-
-        const isAuthorized = await authManager.isAuthorized(`repository/${repo}`, 'write');
+        const { previewId } = args;
+        const isAuthorized = await authManager.isAuthorized('previews', 'write');
         if (!isAuthorized) {
           return {
-            content: [
-              {
-                type: "text",
-                text: `Error: You do not have permission to build preview ${id}`
-              }
-            ]
+            content: [{
+              type: 'text' as const,
+              text: 'You are not authorized to build previews. Please authenticate first.'
+            }]
           };
         }
 
-        // Build the preview
-        const result = await apiClient.buildPreview(id);
-        
-        if (!result || !result.preview) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error building preview ${id}. Please try again.`
-              }
-            ]
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Build started for preview: ${result.preview.name} (ID: ${result.preview.id})`
-            },
-            {
-              type: "text",
-              text: `Status: ${result.preview.status || 'Unknown'}`
-            },
-            {
-              type: "text",
-              text: `You can check the build progress with the getPreviewLogs tool.`
-            }
-          ]
-        };
-      } catch (error) {
-        logger.error(`Error building preview: ${error.message}`);
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error building preview: ${error.message}`
-            }
-          ]
-        };
-      }
-    }
-  );
-
-  // Refresh preview tool
-  server.tool(
-    "refreshPreview",
-    {
-      id: z.string()
-        .min(24, "Preview ID must be at least 24 characters")
-        .max(24, "Preview ID must be at most 24 characters")
-        .describe("Preview ID (24 characters) to refresh")
-    },
-    async ({ id }) => {
-      try {
-        // Get the preview first to check authorization
-        const previewData = await apiClient.getPreview(id);
-        if (!previewData || !previewData.preview) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Preview ${id} not found`
-              }
-            ]
-          };
-        }
-
-        // Check authorization
-        const repo = previewData.preview.repository?.id;
-        if (!repo) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Could not determine repository for preview ${id}`
-              }
-            ]
-          };
-        }
-
-        const isAuthorized = await authManager.isAuthorized(`repository/${repo}`, 'write');
-        if (!isAuthorized) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: You do not have permission to refresh preview ${id}`
-              }
-            ]
-          };
-        }
-
-        // Refresh the preview
-        const result = await apiClient.refreshPreview(id);
-        
-        if (!result || !result.preview) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error refreshing preview ${id}. Please try again.`
-              }
-            ]
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Refresh started for preview: ${result.preview.name} (ID: ${result.preview.id})`
-            },
-            {
-              type: "text",
-              text: `Status: ${result.preview.status || 'Unknown'}`
-            },
-            {
-              type: "text",
-              text: `You can check the refresh progress with the getPreviewLogs tool.`
-            }
-          ]
-        };
-      } catch (error) {
-        logger.error(`Error refreshing preview: ${error.message}`);
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error refreshing preview: ${error.message}`
-            }
-          ]
-        };
-      }
-    }
-  );
-
-  // Delete preview tool
-  server.tool(
-    "deletePreview",
-    {
-      id: z.string()
-        .min(24, "Preview ID must be at least 24 characters")
-        .max(24, "Preview ID must be at most 24 characters")
-        .describe("Preview ID (24 characters) to delete")
-    },
-    async ({ id }) => {
-      try {
-        // Get the preview first to check authorization
-        const previewData = await apiClient.getPreview(id);
-        if (!previewData || !previewData.preview) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Preview ${id} not found`
-              }
-            ]
-          };
-        }
-
-        // Check authorization
-        const repo = previewData.preview.repository?.id;
-        if (!repo) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Could not determine repository for preview ${id}`
-              }
-            ]
-          };
-        }
-
-        const isAuthorized = await authManager.isAuthorized(`repository/${repo}`, 'write');
-        if (!isAuthorized) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: You do not have permission to delete preview ${id}`
-              }
-            ]
-          };
-        }
-
-        // Delete the preview
-        const result = await apiClient.deletePreview(id);
-        
-        if (!result || !result.success) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error deleting preview ${id}. Please try again.`
-              }
-            ]
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Preview ${id} deleted successfully.`
-            }
-          ]
-        };
-      } catch (error) {
-        logger.error(`Error deleting preview: ${error.message}`);
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error deleting preview: ${error.message}`
-            }
-          ]
-        };
-      }
-    }
-  );
-
-  // Get preview logs tool
-  server.tool(
-    "getPreviewLogs",
-    {
-      id: z.string()
-        .min(24, "Preview ID must be at least 24 characters")
-        .max(24, "Preview ID must be at most 24 characters")
-        .describe("Preview ID (24 characters) to get logs for"),
-      
-      lines: z.number()
-        .int()
-        .min(1, "Lines must be at least 1")
-        .max(1000, "Lines cannot exceed 1000")
-        .default(100)
-        .optional()
-        .describe("Number of log lines to retrieve (default: 100, max: 1000)")
-    },
-    async ({ id, lines = 100 }) => {
-      try {
-        // Get the preview first to check authorization
-        const previewData = await apiClient.getPreview(id);
-        if (!previewData || !previewData.preview) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Preview ${id} not found`
-              }
-            ]
-          };
-        }
-
-        // Check authorization
-        const repo = previewData.preview.repository?.id;
-        if (!repo) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: Could not determine repository for preview ${id}`
-              }
-            ]
-          };
-        }
-
-        const isAuthorized = await authManager.isAuthorized(`repository/${repo}`, 'read');
-        if (!isAuthorized) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error: You do not have permission to view logs for preview ${id}`
-              }
-            ]
-          };
-        }
-
-        // Get the logs
-        const result = await apiClient.getPreviewLogs(id, lines);
-        
-        if (!result || !result.logs) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No logs available for preview ${id} or error retrieving logs.`
-              }
-            ]
-          };
-        }
-
-        const previewInfo = [
-          {
-            type: "text",
-            text: `Logs for preview: ${previewData.preview.name} (ID: ${id})`
-          },
-          {
-            type: "text",
-            text: `Status: ${previewData.preview.status || 'Unknown'}`
-          },
-          {
-            type: "text",
-            text: `Last ${result.logs.length} log entries:`
+        const result = await apiClient.buildPreview(previewId);
+        if (result.success) {
+          try {
+            const previewData = await apiClient.getPreview(previewId);
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Successfully started build for preview ${previewData.name} (${previewData.id})`
+                }
+              ]
+            };
+          } catch (error) {
+            const apiError = error as ApiError;
+            logger.error(`Error building preview: ${apiError.message}`);
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Error building preview: ${apiError.message}`
+                }
+              ]
+            };
           }
-        ];
+        }
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Failed to start build'
+            }
+          ]
+        };
+      } catch (error) {
+        const apiError = error as ApiError;
+        logger.error(`Error building preview: ${apiError.message}`);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error building preview: ${apiError.message}`
+            }
+          ]
+        };
+      }
+    }
+  );
 
-        // Format log entries
-        const logEntries = result.logs.map(log => {
+  server.tool(
+    'refreshPreview',
+    {
+      previewId: z.string().describe('ID of the preview to refresh')
+    },
+    async (args, extra) => {
+      try {
+        const { previewId } = args;
+        const isAuthorized = await authManager.isAuthorized('previews', 'write');
+        if (!isAuthorized) {
           return {
-            type: "text",
-            text: `[${log.timestamp || 'Unknown time'}] ${log.message}`
+            content: [{
+              type: 'text' as const,
+              text: 'You are not authorized to refresh previews. Please authenticate first.'
+            }]
+          };
+        }
+
+        const result = await apiClient.refreshPreview(previewId);
+        if (result.success) {
+          try {
+            const previewData = await apiClient.getPreview(previewId);
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Successfully started refresh for preview ${previewData.name} (${previewData.id})`
+                }
+              ]
+            };
+          } catch (error) {
+            const apiError = error as ApiError;
+            logger.error(`Error refreshing preview: ${apiError.message}`);
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Error refreshing preview: ${apiError.message}`
+                }
+              ]
+            };
+          }
+        }
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Failed to start refresh'
+            }
+          ]
+        };
+      } catch (error) {
+        const apiError = error as ApiError;
+        logger.error(`Error refreshing preview: ${apiError.message}`);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error refreshing preview: ${apiError.message}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'deletePreview',
+    {
+      previewId: z.string().describe('ID of the preview to delete')
+    },
+    async (args, extra) => {
+      try {
+        const { previewId } = args;
+        const isAuthorized = await authManager.isAuthorized('previews', 'write');
+        if (!isAuthorized) {
+          return {
+            content: [{
+              type: 'text' as const,
+              text: 'You are not authorized to delete previews. Please authenticate first.'
+            }]
+          };
+        }
+
+        try {
+          const previewData = await apiClient.getPreview(previewId);
+          const result = await apiClient.deletePreview(previewId);
+          if (result.success) {
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `Successfully deleted preview ${previewData.name} (${previewData.id})`
+                }
+              ]
+            };
+          }
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Failed to delete preview'
+              }
+            ]
+          };
+        } catch (error) {
+          const apiError = error as ApiError;
+          logger.error(`Error deleting preview: ${apiError.message}`);
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error deleting preview: ${apiError.message}`
+              }
+            ]
+          };
+        }
+      } catch (error) {
+        const apiError = error as ApiError;
+        logger.error(`Error deleting preview: ${apiError.message}`);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error deleting preview: ${apiError.message}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  server.tool(
+    'getPreviewLogs',
+    {
+      previewId: z.string().describe('ID of the preview to get logs for'),
+      lines: z.number().optional().describe('Number of log lines to return (optional)')
+    },
+    async (args, extra) => {
+      try {
+        const { previewId, lines } = args;
+        const isAuthorized = await authManager.isAuthorized('previews', 'read');
+        if (!isAuthorized) {
+          return {
+            content: [{
+              type: 'text' as const,
+              text: 'You are not authorized to view preview logs. Please authenticate first.'
+            }]
+          };
+        }
+
+        const result = await apiClient.getPreviewLogs(previewId, lines);
+        const logEntries = result.logs.map((log: string) => {
+          return {
+            type: 'text' as const,
+            text: log
           };
         });
 
         return {
-          content: [...previewInfo, ...logEntries]
+          content: logEntries.length > 0 ? logEntries : [{
+            type: 'text' as const,
+            text: 'No logs available for this preview.'
+          }]
         };
       } catch (error) {
-        logger.error(`Error retrieving preview logs: ${error.message}`);
+        const apiError = error as ApiError;
+        logger.error(`Error retrieving preview logs: ${apiError.message}`);
         return {
           content: [
             {
-              type: "text",
-              text: `Error retrieving preview logs: ${error.message}`
+              type: 'text' as const,
+              text: `Error retrieving preview logs: ${apiError.message}`
             }
           ]
         };

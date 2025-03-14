@@ -5,6 +5,27 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
  * 
  * A utility class for interacting with the Tugboat API.
  */
+export interface PreviewData {
+  id: string;
+  name: string;
+  repository: string;
+  ref: string;
+  status: string;
+  // Add other fields as needed
+}
+
+export interface PreviewResponse {
+  preview: PreviewData;
+}
+
+export interface SuccessResponse {
+  success: boolean;
+}
+
+export interface LogsResponse {
+  logs: string[];
+}
+
 export class TugboatApiClient {
   private client: AxiosInstance;
   private baseUrl: string;
@@ -220,7 +241,7 @@ export class TugboatApiClient {
   /**
    * Handle API errors by throwing an enhanced error with more context
    */
-  private handleApiError(error: any) {
+  private handleApiError(error: any): never {
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
@@ -425,7 +446,7 @@ export class TugboatApiClient {
    * @param config Optional preview configuration
    * @returns The created preview data
    */
-  async createPreview(repo: string, ref: string, name?: string, config?: any): Promise<any> {
+  async createPreview(repo: string, ref: string, name?: string, config?: any): Promise<PreviewResponse> {
     const data = {
       ref,
       name,
@@ -440,7 +461,7 @@ export class TugboatApiClient {
    * @param previewId ID of the preview to build
    * @returns The build result
    */
-  async buildPreview(previewId: string): Promise<any> {
+  async buildPreview(previewId: string): Promise<SuccessResponse> {
     return this.post(`/previews/${previewId}/build`);
   }
 
@@ -450,7 +471,7 @@ export class TugboatApiClient {
    * @param previewId ID of the preview to refresh
    * @returns The refresh result
    */
-  async refreshPreview(previewId: string): Promise<any> {
+  async refreshPreview(previewId: string): Promise<SuccessResponse> {
     return this.post(`/previews/${previewId}/refresh`);
   }
 
@@ -460,7 +481,7 @@ export class TugboatApiClient {
    * @param previewId ID of the preview to delete
    * @returns The deletion result
    */
-  async deletePreview(previewId: string): Promise<any> {
+  async deletePreview(previewId: string): Promise<SuccessResponse> {
     return this.post(`/previews/${previewId}/delete`);
   }
 
@@ -471,8 +492,13 @@ export class TugboatApiClient {
    * @param lines Optional number of lines to return
    * @returns The preview logs
    */
-  async getPreviewLogs(previewId: string, lines?: number): Promise<any> {
+  async getPreviewLogs(previewId: string, lines?: number): Promise<LogsResponse> {
     const params = lines ? { lines } : undefined;
     return this.get(`/previews/${previewId}/logs`, { params });
+  }
+
+  async getPreview(previewId: string): Promise<PreviewData> {
+    // Implementation
+    throw new Error('Not implemented');
   }
 } 

@@ -40,6 +40,12 @@
 - [x] Implement Search tools
   - [x] Search for previews
   - [x] Search for projects
+- [ ] Reorganize tools into separate files by API endpoint
+  - [ ] Create dedicated files (previews.ts, projects.ts, repositories.ts)
+  - [ ] Move tools to appropriate files
+  - [ ] Update imports/exports
+  - [ ] Add file-level documentation
+  - [ ] Update tests to match new structure
 
 ## Testing
 
@@ -79,13 +85,14 @@
 ## Tugboat API Implementation Plan
 
 ### Project Management
+
 - [x] Project creation
-  - [ ] Create new project
+  - [x] Create new project
   - [x] Configure project settings
 - [x] Project updates
   - [x] Update project name
   - [x] Update project settings
-  - [ ] Update access tokens/keys
+  - [x] Update access tokens/keys
 - [x] Project deletion
 - [x] List projects
 - [x] Get project details
@@ -94,6 +101,7 @@
 - [x] Get project statistics
 
 ### Repository Management
+
 - [x] Repository creation
   - [x] Connect to GitHub repository
   - [x] Connect to GitLab repository
@@ -115,6 +123,7 @@
 - [x] Generate SSH keys
 
 ### Preview Management (extend existing)
+
 - [x] Preview configuration
   - [x] Update preview settings
   - [x] Set environment variables
@@ -130,6 +139,7 @@
   - [x] Get preview statistics
 
 ### Service Management
+
 - [ ] List services for a preview
 - [ ] Get service details
 - [ ] Start/stop/restart services
@@ -137,6 +147,7 @@
 - [ ] Access service logs
 
 ### User Management
+
 - [ ] List users
 - [ ] Get user details
 - [ ] Invite users
@@ -144,12 +155,14 @@
 - [ ] Remove users
 
 ### Job Management
+
 - [ ] List jobs
 - [ ] Get job details
 - [ ] Cancel running jobs
 - [ ] View job logs
 
 ### Webhook Management
+
 - [ ] List webhooks
 - [ ] Create webhook
 - [ ] Update webhook
@@ -157,6 +170,7 @@
 - [ ] View webhook history
 
 ### Analytics and Reporting
+
 - [ ] Get usage statistics
 - [ ] Get build metrics
 - [ ] Get preview metrics
@@ -170,4 +184,4 @@
 - [ ] Add metrics and monitoring
 - [ ] Support for webhooks and event notifications
 - [ ] Add interactive demos
-- [ ] Implement retry logic for API requests 
+- [ ] Implement retry logic for API requests
